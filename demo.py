@@ -345,11 +345,11 @@ def demo_callbacks(app):
         Output('graph-trend-plot', 'figure'),
         Output('markdown-trend-summary', 'children'),
         Input('graph-trend-map', 'clickData'),
+        Input('dropdown-select-mktest', 'value'),
         State('dropdown-select-hydrometric', 'value'),
-        State('dropdown-select-mktest', 'value'),
         State('slider-pvalue-thr', 'value'),
     )
-    def plot_trend(click_data, sel_hym, method, thr):
+    def plot_trend(click_data, method, sel_hym, thr):
 
         if click_data:
 
