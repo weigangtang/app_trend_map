@@ -14,7 +14,11 @@ from dash.exceptions import PreventUpdate
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
+glacier = pd.read_csv('data/watershed_glacier_area.csv', index_col=0)
+glacier = glacier[['GLA AREA', 'GLA PERC']]
+
 gauges = pd.read_csv('data/Station_Info_ALL.csv', index_col=0)
+gauges = gauges.join(glacier)
 
 # keep hydrometric order
 hym_list = [
@@ -62,11 +66,11 @@ hym_options = [
 ]
 
 trend_summary_frame = """
-    |Trend Analysis||
+    ||||
     | ------------- | ------------- | ------------- |
     | MK-Test P-Value: {:.3f} | Net Change: {:.3f} | Initial:  {:.3f} |
     | Sen's Slope: {:.3f} | Change Rate: {:.3f}| Last:  {:.3f} |
-    | \\# Valid Year: {:.0f}||
+    | \\# Valid Year: {:.0f}|||
 """
 
 canadian_western_prov = ['YT', 'BC', 'NT', 'AB']
@@ -80,10 +84,11 @@ trend_summary_empty = re.sub('{\\S*}', '', trend_summary_frame)
 
 trend_plot_empty = go.Figure(
     layout={
-        'height': 320,
+        'height': 300,
         'margin': dict(l=2, r=2, t=50, b=2),
     },
 )
+
 
 # App Layout -----------------------------------------------------------------
 # ----------------------------------------------------------------------------
@@ -93,189 +98,186 @@ def create_layout(app):
         children=[
 
             html.Div(
-                className='row',
-                # style={'height': '450px'},
+                className='seven columns',
                 children=[
+
                     html.Div(
-                        className='seven columns',
                         children=[
-
-                            html.Div(
-                                children=[
-                                    html.Label(
-                                        'Select Hydrometric:',
-                                        style={
-                                            'font-size': 16,
-                                            'font-weight': 'bold',
-                                            'margin-bottom': '5px',
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id='dropdown-select-hydrometric',
-                                        placeholder='Select Hydrometric',
-                                        value='mean',
-                                        options=hym_options,
-                                    ),
-                                ],
+                            html.Label(
+                                'Select Hydrometric:',
                                 style={
-                                    'display': 'inline-block',
-                                    'width': '30%',
-                                    'height': '75px',
-                                    'margin-right': '1%',
-                                    'margin-bottom': '10px',
-                                    'vertical-align': 'middle',
-                                    'border': '1px rgb(200,200,200) solid',
-                                    'border-radius': '5px',
-                                    'padding': '5px 15px 5px 15px',
-                                }
+                                    'font-size': 16,
+                                    'font-weight': 'bold',
+                                    'margin-bottom': '5px',
+                                },
                             ),
-
-                            html.Div(
-                                children=[
-                                    html.Label(
-                                        'Region:',
-                                        style={
-                                            'font-size': 16,
-                                            'font-weight': 'bold',
-                                            'margin-bottom': '5px',
-                                        },
-                                    ),
-                                    dcc.RadioItems(
-                                        id='radio-region',
-                                        value='all',
-                                        options=[
-                                            {'label': 'All', 'value': 'all'},
-                                            {'label': 'West Only', 'value': 'west'},
-                                        ],
-                                        labelStyle={
-                                            'display': 'inline-block',
-                                            'margin-right': '20px'
-                                        },
-                                        inputStyle={'margin-right': '10px'},
-                                    ),
-                                ],
-                                style={
-                                    'display': 'inline-block',
-                                    'width': '25%',
-                                    'height': '75px',
-                                    'margin-right': '1%',
-                                    'margin-bottom': '10px',
-                                    'vertical-align': 'middle',
-                                    'border': '1px rgb(200,200,200) solid',
-                                    'border-radius': '5px',
-                                    'padding': '5px 15px 5px 15px',
-                                }
-                            ),
-
-
-                            html.Div(
-                                children=[
-                                    html.Label(
-                                        'Significance Level:',
-                                        style={
-                                            'font-size': 16,
-                                            'font-weight': 'bold',
-                                            'margin-bottom': '10px',
-                                        },
-                                    ),
-                                    dcc.Slider(
-                                        id='slider-pvalue-thr',
-                                        value=0.05,
-                                        min=0.01,
-                                        max=0.10,
-                                        step=None,
-                                        marks={
-                                            0.01: {
-                                                'label': '0.01',
-                                                'style': {'font-size': 14}
-                                            },
-                                            0.05: {
-                                                'label': '0.05',
-                                                'style': {'font-size': 14}
-                                            },
-                                            0.10: {
-                                                'label': '0.10',
-                                                'style': {'font-size': 14}
-                                            },
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    'display': 'inline-block',
-                                    'width': '28%',
-                                    'height': '75px',
-                                    'margin-right': '1%',
-                                    'margin-bottom': '10px',
-                                    'vertical-align': 'middle',
-                                    'border': '1px rgb(200,200,200) solid',
-                                    'border-radius': '5px',
-                                    'padding': '5px 15px 5px 15px',
-                                }
-                            ),
-
-                            dcc.Graph(
-                                id='graph-trend-map',
+                            dcc.Dropdown(
+                                id='dropdown-select-hydrometric',
+                                placeholder='Select Hydrometric',
+                                value='mean',
+                                options=hym_options,
                             ),
                         ],
+                        style={
+                            'display': 'inline-block',
+                            'width': '30%',
+                            'height': '75px',
+                            'margin-right': '1%',
+                            'margin-bottom': '10px',
+                            'vertical-align': 'middle',
+                            'border': '1px rgb(200,200,200) solid',
+                            'border-radius': '5px',
+                            'padding': '5px 15px 5px 15px',
+                        }
                     ),
 
                     html.Div(
-                        className='five columns',
                         children=[
-
-                            html.Div(
-                                children=[
-                                    html.Label(
-                                        'Select MK-test Method: ',
-                                        style={
-                                            'font-size': 16,
-                                            'font-weight': 'bold',
-                                            'margin-bottom': '5px',
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id='dropdown-select-mktest',
-                                        placeholder='Select MK-test',
-                                        value='original',
-                                        options=mktest_options,
-                                    ),
-                                ],
+                            html.Label(
+                                'Region:',
                                 style={
-                                    'display': 'inline-block',
-                                    'width': '90%',
-                                    'height': '75px',
+                                    'font-size': 16,
+                                    'font-weight': 'bold',
                                     'margin-bottom': '10px',
-                                    'vertical-align': 'middle',
-                                    'border': '1px rgb(200,200,200) solid',
-                                    'border-radius': '5px',
-                                    'padding': '5px 15px 5px 15px',
-                                }
+                                },
                             ),
-
-                            dcc.Markdown(
-                                id='markdown-trend-summary',
-                                children=trend_summary_empty,
-                                style={'width': '100%', 'height': '180px'}
-                            ),
-                            dcc.Graph(
-                                id='graph-trend-plot',
-                                figure=trend_plot_empty,
+                            dcc.RadioItems(
+                                id='radio-region',
+                                value='all',
+                                options=[
+                                    {'label': 'All', 'value': 'all'},
+                                    {'label': 'West Only', 'value': 'west'},
+                                ],
+                                labelStyle={
+                                    'display': 'inline-block',
+                                    'margin-right': '20px'
+                                },
+                                inputStyle={'margin-right': '10px'},
                             ),
                         ],
+                        style={
+                            'display': 'inline-block',
+                            'width': '25%',
+                            'height': '75px',
+                            'margin-right': '1%',
+                            'margin-bottom': '10px',
+                            'vertical-align': 'middle',
+                            'border': '1px rgb(200,200,200) solid',
+                            'border-radius': '5px',
+                            'padding': '5px 15px 5px 15px',
+                        }
+                    ),
+
+                    html.Div(
+                        children=[
+                            html.Label(
+                                'Significance Level:',
+                                style={
+                                    'font-size': 16,
+                                    'font-weight': 'bold',
+                                    'margin-bottom': '10px',
+                                },
+                            ),
+                            dcc.Slider(
+                                id='slider-pvalue-thr',
+                                value=0.05,
+                                min=0.01,
+                                max=0.10,
+                                step=None,
+                                marks={
+                                    0.01: {
+                                        'label': '0.01',
+                                        'style': {'font-size': 14}
+                                    },
+                                    0.05: {
+                                        'label': '0.05',
+                                        'style': {'font-size': 14}
+                                    },
+                                    0.10: {
+                                        'label': '0.10',
+                                        'style': {'font-size': 14}
+                                    },
+                                },
+                            ),
+                        ],
+                        style={
+                            'display': 'inline-block',
+                            'width': '30%',
+                            'height': '75px',
+                            'margin-bottom': '10px',
+                            'vertical-align': 'middle',
+                            'border': '1px rgb(200,200,200) solid',
+                            'border-radius': '5px',
+                            'padding': '5px 15px 5px 15px',
+                        }
+                    ),
+
+                    dcc.Graph(
+                        id='graph-trend-map',
                     ),
                 ],
             ),
+
+            html.Div(
+                className='five columns',
+                children=[
+
+                    html.Div(
+                        children=[
+                            html.Label(
+                                'Select MK-test Method: ',
+                                style={
+                                    'font-size': 16,
+                                    'font-weight': 'bold',
+                                    'margin-bottom': '5px',
+                                },
+                            ),
+                            dcc.Dropdown(
+                                id='dropdown-select-mktest',
+                                placeholder='Select MK-test',
+                                value='original',
+                                options=mktest_options,
+                            ),
+                        ],
+                        style={
+                            'display': 'inline-block',
+                            'width': '90%',
+                            'height': '80px',
+                            'margin-bottom': '10px',
+                            'vertical-align': 'middle',
+                            'border': '1px rgb(200,200,200) solid',
+                            'border-radius': '5px',
+                            'padding': '5px 15px 5px 15px',
+                        }
+                    ),
+                    dcc.Graph(
+                        id='graph-trend-plot',
+                        figure=trend_plot_empty,
+                        style={'margin-top': '10px'}
+                    ),
+                    dcc.Markdown(
+                        id='markdown-trend-summary',
+                        children=trend_summary_empty,
+                        style={'height': '180px', 'margin-top': '10px'}
+                    ),
+                ],
+            ),
+
         ],
     )
 
 
 def add_trace(fig, df_sel, size, rgba):
 
-    hovertext_frame = '<b>{}</b><br>Name: {}<br>Area: {:.1f} sqkm'
+    hovertext_frame = '<b>{}</b><br>' + 'Name: {}<br>' + \
+        'Area: {:.1f} sqkm<br>' + 'Glacier Coverage (%): {:.2f}'
 
     text_list = [
         hovertext_frame.format(
-            idx, val['STATION NAME'], val['DRAINAGE AREA']
+            idx,
+            val['STATION NAME'],
+            val['DRAINAGE AREA'],
+            val['GLA PERC'],
         )
         for idx, val in df_sel.iterrows()
     ]
@@ -422,8 +424,8 @@ def demo_callbacks(app):
                 ),
                 # 'paper_bgcolor': '#F2F2F2',
                 # 'width': 800,
-                'height': 320,
-                'margin': dict(l=2, r=2, t=50, b=2),
+                'height': 300,
+                'margin': dict(l=2, r=2, t=30, b=2),
             }
 
             figure = {'data': data, 'layout': layout}
