@@ -11,9 +11,7 @@ from dash import dcc
 from dash import html
 
 from dash import callback_context as ctx
-
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
@@ -52,13 +50,14 @@ hym_list = [
     'max7d_jd', 'min7d_jd', 'max14d_jd', 'min14d_jd',
     'low_count', 'low_dur', 'high_count', 'high_dur',
     'si',
-    'aut', 'aut_p', 'spr', 'spr_p',
-    'smr', 'smr_p', 'smr2', 'smr2_p',
-    'win', 'win_p', 'win2', 'win2_p',
+    'spr', 'spr_p', 'smr', 'smr_p',
+    'aut', 'aut_p', 'win', 'win_p',
+    'smr2', 'smr2_p', 'aut2', 'aut2_p',
+    'cold', 'cold_p', 'cold2', 'cold2_p',
     'spr_max14d_jd', 'spr_onset_jd',
 ]
 
-hym_name = pd.read_csv('data/Hydrometric_Name_Table.csv', index_col=0)
+hym_name = pd.read_csv('data/hydrometric_name_table.csv', index_col=0)
 hym_name = hym_name.loc[hym_list]
 
 mktest_options = [
@@ -487,7 +486,7 @@ def demo_callbacks(app):
         if trigger_id != 'graph-trend-map':
 
             df_mkout = pd.read_csv(
-                'data/{}/{}.csv'.format(method, sel_hym), index_col=0)
+                'data/mktest/{}/{}.csv'.format(method, sel_hym), index_col=0)
             df = df_mkout.join(gauges, how='left')
 
             if region == 'All':
@@ -508,10 +507,10 @@ def demo_callbacks(app):
             n_sig_pos = np.sum((df['pvalue'] < thr) & (df['slp'] > 0))
             n_sig_neg = np.sum((df['pvalue'] < thr) & (df['slp'] < 0))
 
-            pos_count_str = 'Postive: {:4} | Signficiant Positive: {:4}'.format(
-                n_pos, n_sig_pos)
-            neg_count_str = 'Negative: {:4} | Significant Negative: {:4}'.format(
-                n_neg, n_sig_neg)
+            pos_count_str = 'Positive: {:4}'.format(n_pos) + ' | ' + \
+                'Signficiant Positive: {:4}'.format(n_sig_pos)
+            neg_count_str = 'Negative: {:4}'.format(n_neg) + ' | ' + \
+                'Significant Negative: {:4}'.format(n_sig_neg)
 
             fig = go.Figure()
 
@@ -570,10 +569,10 @@ def demo_callbacks(app):
             sel_sid = text.replace('<b>', '').replace('</b>', '')
 
             df_hym = pd.read_csv(
-                'data/hym/{}.csv'.format(sel_hym), index_col=0)
+                'data/hydrometrics/{}.csv'.format(sel_hym), index_col=0)
 
             df_mkout = pd.read_csv(
-                'data/{}/{}.csv'.format(method, sel_hym), index_col=0)
+                'data/mktest/{}/{}.csv'.format(method, sel_hym), index_col=0)
 
             sel_hym_name = hym_name.loc[sel_hym, 'Name']
 
@@ -682,3 +681,4 @@ def demo_callbacks(app):
 
         else:
             return {'data': [], 'layout': gts_layout}
+
