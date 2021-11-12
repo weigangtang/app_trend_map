@@ -1,4 +1,4 @@
-Subscript,Name,Full Name,Symbol,Category
+﻿Subscript,Name,Full Name,Symbol,Category
 mean,Mean,annual mean flow,Q_mean,Basic
 median,Median,annual median flow,Q_median,Basic
 std,STD,standard deviation of annual daily flows,Q_std,Basic
@@ -11,19 +11,19 @@ range,Range,annual flow range,Q_range,Basic
 90p,90th Percentile,90th percentile annual flow,Q_90p,High Flow
 95p,95th Percentile,95th percentile annual flow,Q_95p,High Flow
 min,Min,annual minimum flow,Q_min,Low Flow
-min3d,3d Min,3-day minimum flow,Q_min3d,Low Flow
-min7d,7d Min,7-day minimum flow,Q_min7d,Low Flow
-min14d,14d Min,14-day minimum flow,Q_min14d,Low Flow
-min30d,30d Min,30-day minimum flow,Q_min30d,Low Flow
-min90d,90d Min,90-day minimum flow,Q_min90d,Low Flow
+min3d,3d Min Flow,3-day minimum flow,Q_min3d,Low Flow
+min7d,7d Min Flow,7-day minimum flow,Q_min7d,Low Flow
+min14d,14d Min Flow,14-day minimum flow,Q_min14d,Low Flow
+min30d,30d Min Flow,30-day minimum flow,Q_min30d,Low Flow
+min90d,90d Min Flow,90-day minimum flow,Q_min90d,Low Flow
 low_count,# Low Flow Events,number of low flow events,N_low,Low Flow
 low_dur,Duration of Low Flow,duration of low flow,D_low,Low Flow
-max,Max,annual maximum flow,Q_max,High Flow
-max3d,3d Max,3-day maximum flow,Q_max3d,High Flow
-max7d,7d Max,7-day maximum flow,Q_max7d,High Flow
-max14d,14d Max,14-day maximum flow,Q_max14d,High Flow
-max30d,30d Max,30-day maximum flow,Q_max30d,High Flow
-max90d,90d Max,90-day maximum flow,Q_max90d,High Flow
+max,Max Flow,annual maximum flow,Q_max,High Flow
+max3d,3d Max Flow,3-day maximum flow,Q_max3d,High Flow
+max7d,7d Max Flow,7-day maximum flow,Q_max7d,High Flow
+max14d,14d Max Flow,14-day maximum flow,Q_max14d,High Flow
+max30d,30d Max Flow,30-day maximum flow,Q_max30d,High Flow
+max90d,90d Max Flow,90-day maximum flow,Q_max90d,High Flow
 high_count,# High Flow Events,number of high flow events,N_high,High Flow
 high_dur,Duration of High Flow,duration of high flow,D_high,High Flow
 rising,Positive Gradient,average positive gradient,G_pos,Change
@@ -73,25 +73,29 @@ cen_jd,Day of Centroid,day of centroid of flow mass,T_cen,Timing
 75p_jd,Day of 75th Perc,day of 75th percentile,T_75p,Timing
 si,Seasonal Index,seasonal index,SI,
 cv,Coefficient of Variance,coefficient of variation under 11-year window,CV_Q,
-smr,Summer Flow (Jul-Sep),,,
-smr_p,Summer Fraction Flow (Jul-Sep),,,
-smr2,Summer Flow (Jun-Aug),,,
-smr2_p,Summer Fractional Flow (Jun-Aug),,,
-aut,Autumn Flow (Oct - Nov),,,
-aut_p,Autumn Fractional Flow (Oct - Nov),,,
 spr,Spring Flow (Mar-May),,,
-spr_p,Spring Fractional Flow (Mar-May),,,
-win,Winter Flow (Oct-Apr),,,
-win_p,Winter Flow Portion (Oct-Apr),,,
-win2,Winter Flow (Sep-May),,,
-win2_p,Winter Fractional Flow (Sep-May),,,
+spr_p,Spring Fraction Flow (Mar-May),,,
+smr,Summer Flow (Jun-Aug),,,
+smr_p,Summer Fraction Flow (Jun-Aug),,,
+aut,Autumn Flow (Sep-Nov),,,
+aut_p,Autumn Fractional Flow (Sep-Nov),,,
+win,Winter Flow (Dec-Feb),,,
+win_p,Winter Fractional Flow (Dec-Feb),,,
+smr2,Late Summer Flow (Jul-Sep),,,
+smr2_p,Late Summer Fractional Flow (Jul-Sep),,,
+aut2,Short Autumn Flow (Oct-Nov),,,
+aut2_p,Short Autumn Fractional Flow (Oct-Nov),,,
+cold,Cold-Season Flow (Oct-Apr),,,
+cold_p,Cold-Season Fractional Flow (Oct-Apr),,,
+cold2,Cold-Season Flow (Sep-May),,,
+cold2_p,Cold-Season Fractional Flow (Sep-May),,,
+spr_onset_jd,Day of Spring Freshet Onset,Day of 14-Day Onset in Spring (Feb-Jun),,
+spr_max14d_jd,Day of Spring Freshet Peak,Day of 14-Day  Max in Spring (Feb-Jun),,
 annual_precip,Annual Precip,,,
 march_precip,Mar Precip,March Precip,,
 autumn_precip,Autumn Precip,Autumn Precip (Oct-Nov),,
 summer_precip,Summer Precip,Summer Precip (July-August),,
 winter_snowfall,Winter Snow,Winter Snowfall (Oct-May),,
-spr_onset_jd,Day of Spring Freshet Onset,Day of 14-Day Onset in Spring (Feb-Jun),,
-spr_max14d_jd,Day of Spring Freshet Peak,Day of 14-Day  Max in Spring (Feb-Jun),,
 melt_date_7d,Melting Date,Day of First 7-Day Consecutive Positive Temp,T_7d>0,
 melt_date_10d,Melting Date,Day of First 10-Day Consecutive Positive Temp,T_10d>0,
 melt_date_14d,Melting Date,Day of First 14-Day Consecutive Positive Temp,T_14d>0,
