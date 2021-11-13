@@ -57,7 +57,7 @@ hym_list = [
     'spr_max14d_jd', 'spr_onset_jd',
 ]
 
-hym_name = pd.read_csv('data/hydrometric_name_table.csv', index_col=0)
+hym_name = pd.read_csv('data/hym_name_table.csv', index_col=0)
 hym_name = hym_name.loc[hym_list]
 
 mktest_options = [
