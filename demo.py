@@ -369,7 +369,7 @@ def create_layout(app):
                             ),
                             dcc.Dropdown(
                                 id='dropdown-select-region',
-                                value='All',
+                                value='North America',
                                 options=region_options,
                             ),
                         ],
