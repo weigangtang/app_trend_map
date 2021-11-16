@@ -230,6 +230,7 @@ mkout_param_options = [
     {'label': 'Last Value', 'value': 'last'},
 ]
 
+
 # Support Functions ----------------------------------------------------------
 # ----------------------------------------------------------------------------
 def find_trend_group(df_mkout, trend_type, pthr):
@@ -249,7 +250,7 @@ def find_trend_group(df_mkout, trend_type, pthr):
         return df_mkout.index
 
 
-def add_watershed_polygon(sel_sid):
+def create_watershed_polygon(sel_sid, color='rgba(0,0,256,0.2)'):
 
     gdf_sel = gdf[gdf.index == sel_sid]
 
@@ -269,12 +270,12 @@ def add_watershed_polygon(sel_sid):
         'source': geojd,
         'below': '',
         'type': 'fill',
-        'color': 'rgba(0,0,256,0.2)',
+        'color': color,
     }
     return watershed_layer
 
 
-def add_gauges_points(fig, df_sel, size, rgba):
+def create_map_points(df_sel, size, color):
 
     hovertext_frame = '<b>{}</b><br>' + 'Name: {}<br>' + \
         'Area: {:.1f} sqkm<br>' + 'Glacier Coverage (%): {:.2f}'
@@ -288,17 +289,15 @@ def add_gauges_points(fig, df_sel, size, rgba):
         )
         for idx, val in df_sel.iterrows()
     ]
-
-    fig.add_trace(
-        go.Scattermapbox(
-            lat=df_sel['LATITUDE'],
-            lon=df_sel['LONGITUDE'],
-            mode='markers',
-            marker={'size': size, 'color': rgba},
-            text=text_list,
-            hoverinfo='text'
-        )
+    trace = go.Scattermapbox(
+        lat=df_sel['LATITUDE'],
+        lon=df_sel['LONGITUDE'],
+        mode='markers',
+        marker={'size': size, 'color': color},
+        text=text_list,
+        hoverinfo='text'
     )
+    return trace
 
 
 def extract_sid_from_click(click_data):
@@ -319,6 +318,7 @@ def create_layout(app):
                 className='seven columns',
                 children=[
 
+                    # Basemap Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -347,7 +347,7 @@ def create_layout(app):
                             'display': 'inline-block',
                             'width': '28%',
                             'height': '70px',
-                            'margin-left': '1%',
+                            'margin-left': '2%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
@@ -356,7 +356,7 @@ def create_layout(app):
                         }
                     ),
 
-
+                    # Region Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -386,6 +386,7 @@ def create_layout(app):
                         }
                     ),
 
+                    # Glacial Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -424,11 +425,13 @@ def create_layout(app):
                         }
                     ),
 
+                    # Trend Map
                     dcc.Graph(
                         id='graph-trend-map',
                         figure=fig_trend_map,
                     ),
 
+                    # Trend Count String
                     html.Label(
                         id='trend-count-string_pos',
                         style={
@@ -444,10 +447,13 @@ def create_layout(app):
                         style={
                             'color': 'rgba(0,0,150,.9)',
                             'width': '40%',
+                            'margin-left': '10%',
                             'margin-top': '10px',
                             'display': 'inline-block',
                         },
                     ),
+
+                    # Pie Plot
                     html.Div(
                         dcc.Graph(
                             id='graph-pie',
@@ -458,6 +464,8 @@ def create_layout(app):
                             'display': 'inline-block'
                         },
                     ),
+
+                    # Box Plot
                     html.Div(
                         children=[
                             dcc.Dropdown(
@@ -492,6 +500,7 @@ def create_layout(app):
                 className='five columns',
                 children=[
 
+                    # Hydrometric Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -522,6 +531,7 @@ def create_layout(app):
                         }
                     ),
 
+                    # Significance Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -566,6 +576,7 @@ def create_layout(app):
                         }
                     ),
 
+                    # MK Method Panel
                     html.Div(
                         children=[
                             html.Label(
@@ -595,22 +606,27 @@ def create_layout(app):
                         }
                     ),
 
+                    # Trend Line Plot
                     dcc.Graph(
                         id='graph-trend-plot',
                         figure=trend_plot_empty,
                         style={'margin-top': '10px'}
                     ),
+
+                    # Trend Summary
                     dcc.Markdown(
                         id='markdown-trend-summary',
                         children=trend_summary_empty,
                         style={'height': '180px', 'margin-top': '10px'}
                     ),
 
+                    # GTS
                     dcc.Graph(
                         id='graph-gts',
                         figure=gts_plot_empty,
                         style={'width': '100%', 'margin-top': '20px'},
                     ),
+
                 ],
             ),
 
@@ -619,17 +635,6 @@ def create_layout(app):
 
 
 def demo_callbacks(app):
-
-    # @app.callback(
-    #     Output('confirm-no-shapefile', 'displayed'),
-    #     Input('graph-trend-map', 'clickData'),
-    # )
-    # def display_confirm(click_data):
-    #     if click_data:
-    #         sel_sid = extract_sid_from_click(click_data)
-    #         if sel_sid not in gdf.index:
-    #             return True
-    #     return False
 
     @app.callback(
         Output('store-mkout-data', 'data'),
@@ -667,7 +672,7 @@ def demo_callbacks(app):
         Output('trend-count-string_neg', 'children'),
         Input('store-mkout-data', 'data'),
     )
-    def count_trend_type(data):
+    def update_trend_count_string(data):
 
         df = pd.DataFrame.from_dict(data)
 
@@ -689,29 +694,31 @@ def demo_callbacks(app):
         Input('graph-trend-map', 'clickData'),
         State('graph-trend-map', 'figure'),
     )
-    def plot_trend_map(data, basemap, click_data, fig_config):
+    def update_trend_map(data, basemap, click_data, fig_config):
 
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         fig = go.Figure(fig_config)  # fig_config = {data, layout}
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if trigger_id == 'store-mkout-data':
             df = pd.DataFrame.from_dict(data)
-            fig.data = []
-            for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
-                size = trend_config_dict[trend_type]['size']
-                color = trend_config_dict[trend_type]['color']
-                df_sel = df[df['type'] == trend_type]
-                add_gauges_points(fig, df_sel, size, color)
+            fig.data = []  # clear data points
 
-        else:
+            for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
+                mapscatter = create_map_points(
+                    df_sel=df[df['type'] == trend_type],
+                    size=trend_config_dict[trend_type]['size'],
+                    color=trend_config_dict[trend_type]['color'],
+                )
+                fig.add_trace(mapscatter)
+        elif trigger_id == 'radio-basemap':
+            fig.update_layout(mapbox_style=basemap)
+        elif trigger_id == 'graph-trend-map':
             sel_sid = extract_sid_from_click(click_data)
             if sel_sid in gdf.index:
-                watershed_layer = add_watershed_polygon(sel_sid)
-                fig.update_layout(
-                    mapbox_style=basemap,
-                    mapbox_layers=[watershed_layer]
-                )
-
+                color = 'rgba(255,255,0,0.3)' if basemap == 'satellite' \
+                    else 'rgba(0,0,256,0.2)'
+                watershed_layer = create_watershed_polygon(sel_sid, color)
+                fig.update_layout(mapbox_layers=[watershed_layer])
         return fig
 
     @app.callback(
@@ -721,15 +728,13 @@ def demo_callbacks(app):
         Input('store-mkout-data', 'data'),
         State('dropdown-select-hydrometric', 'value'),
     )
-    def plot_trend(click_data, data, sel_hym):
+    def update_trend_line(click_data, data, sel_hym):
 
         if click_data:
 
             df = pd.DataFrame.from_dict(data)
 
-            text = click_data['points'][0]['text']
-            text = text.split('<br>')[0]
-            sel_sid = text.replace('<b>', '').replace('</b>', '')
+            sel_sid = extract_sid_from_click(click_data)
 
             df_hym = pd.read_csv(
                 'data/hydrometrics/{}.csv'.format(sel_hym), index_col=0)
@@ -793,7 +798,7 @@ def demo_callbacks(app):
         Output('graph-gts', 'figure'),
         Input('graph-trend-map', 'clickData'),
     )
-    def plot_gts(click_data):
+    def update_gts(click_data):
 
         if click_data:
 
@@ -842,7 +847,7 @@ def demo_callbacks(app):
         Output('graph-pie', 'figure'),
         Input('store-mkout-data', 'data'),
     )
-    def plot_pie(data):
+    def update_pie_plot(data):
 
         df = pd.DataFrame.from_dict(data)
 
@@ -880,7 +885,7 @@ def demo_callbacks(app):
         Input('store-mkout-data', 'data'),
         Input('dropdown-mktout-params', 'value'),
     )
-    def plot_boxplot(data, mkout_param):
+    def update_boxplot(data, mkout_param):
 
         fig_box = go.Figure()
 
@@ -909,3 +914,14 @@ def demo_callbacks(app):
             margin=dict(l=2, r=2, t=2, b=2),
         )
         return fig_box
+
+    # @app.callback(
+    #     Output('confirm-no-shapefile', 'displayed'),
+    #     Input('graph-trend-map', 'clickData'),
+    # )
+    # def display_confirm(click_data):
+    #     if click_data:
+    #         sel_sid = extract_sid_from_click(click_data)
+    #         if sel_sid not in gdf.index:
+    #             return True
+    #     return False
