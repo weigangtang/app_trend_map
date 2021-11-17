@@ -13,6 +13,9 @@ from dash import html
 from dash import callback_context as ctx
 from dash.dependencies import Input, Output, State
 
+from itertools import cycle
+bool_cyc = cycle([True, False])
+
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
 df_rsid = pd.read_csv('data/regional_sid.csv', index_col=0)
@@ -37,7 +40,7 @@ gdf.index = [
 df_hys = pd.read_csv('data/sel_hys.csv', index_col=[0, 1])
 df_hys.columns = np.arange(1, 366)
 
-# keep hydrometric order
+# keep hydrometrics in order
 hym_list = [
     'mean', 'median', 'std', 'skew', 'range',
     '10p', '25p', '75p', '90p',
@@ -65,16 +68,16 @@ mktest_options = [
         'label': 'Original Mann-Kendall Test',
         'value': 'original'},
     {
-        'label': 'Hamed and Rao Modified MK Test',
+        'label': 'Hamed and Rao Method',
         'value': 'rao'},
     {
-        'label': 'Yue and Wang Modified MK Test',
+        'label': 'Yue and Wang Method',
         'value': 'yue'},
     {
-        'label': 'Modified MK Test using Pre-Whitening Method',
+        'label': 'Pre-Whitening Method',
         'value': 'prewhiten'},
     {
-        'label': 'Modified MK Test using Trend Free Pre-Whitening Method',
+        'label': 'Trend Free Pre-Whitening Method',
         'value': 'trendfree'},
 ]
 
@@ -250,12 +253,14 @@ def find_trend_group(df_mkout, trend_type, pthr):
         return df_mkout.index
 
 
-def create_watershed_polygon(sel_sid, color='rgba(0,0,256,0.2)'):
+def create_watershed_polygon(sel_sid, color='rgba(0,0,256,0.2)', addone=False):
 
     gdf_sel = gdf[gdf.index == sel_sid]
-
     gjs_sel = eval(gdf_sel.to_json())
     coords = gjs_sel['features'][0]['geometry']['coordinates'][0]
+
+    if addone:
+        coords = coords + [coords[-1]]
 
     # get watershed layer
     geojd = {'type': 'FeatureCollection', 'features': []}
@@ -318,44 +323,6 @@ def create_layout(app):
                 className='seven columns',
                 children=[
 
-                    # Basemap Panel
-                    html.Div(
-                        children=[
-                            html.Label(
-                                'Basemap:',
-                                style={
-                                    'font-size': 16,
-                                    'font-weight': 'bold',
-                                    'margin-bottom': '10px',
-                                },
-                            ),
-                            dcc.RadioItems(
-                                id='radio-basemap',
-                                value='open-street-map',
-                                options=[
-                                    {'label': 'Open Street', 'value': 'open-street-map'},
-                                    {'label': 'Satellite', 'value': 'satellite'},
-                                ],
-                                labelStyle={
-                                    'display': 'inline-block',
-                                    'margin-right': '10px'
-                                },
-                                inputStyle={'margin-right': '5px'},
-                            ),
-                        ],
-                        style={
-                            'display': 'inline-block',
-                            'width': '28%',
-                            'height': '70px',
-                            'margin-left': '2%',
-                            'margin-bottom': '10px',
-                            'vertical-align': 'middle',
-                            'border': '1px rgb(200,200,200) solid',
-                            'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
-                        }
-                    ),
-
                     # Region Panel
                     html.Div(
                         children=[
@@ -375,7 +342,7 @@ def create_layout(app):
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '20%',
+                            'width': '26%',
                             'height': '70px',
                             'margin-left': '1%',
                             'margin-bottom': '10px',
@@ -397,13 +364,12 @@ def create_layout(app):
                                     'margin-bottom': '10px',
                                 },
                             ),
-                            dcc.RadioItems(
-                                id='radio-glacial',
-                                value='all',
+                            dcc.Checklist(
+                                id='checklist-glacial',
+                                value=['gla', 'non-gla'],
                                 options=[
-                                    {'label': 'All', 'value': 'all'},
                                     {'label': 'Glacial', 'value': 'gla'},
-                                    {'label': 'Non-Glacial', 'value': 'non'},
+                                    {'label': 'Non-Glacial', 'value': 'non-gla'},
                                 ],
                                 labelStyle={
                                     'display': 'inline-block',
@@ -414,9 +380,53 @@ def create_layout(app):
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '35%',
+                            'width': '28%',
                             'height': '70px',
                             'margin-left': '1%',
+                            'margin-bottom': '10px',
+                            'vertical-align': 'middle',
+                            'border': '1px rgb(200,200,200) solid',
+                            'border-radius': '5px',
+                            'padding': '5px 15px 5px 15px',
+                        }
+                    ),
+
+                    # Basemap Panel
+                    html.Div(
+                        children=[
+                            html.Label(
+                                'Basemap:',
+                                style={
+                                    'font-size': 16,
+                                    'font-weight': 'bold',
+                                    'margin-bottom': '10px',
+                                },
+                            ),
+                            dcc.RadioItems(
+                                id='radio-basemap',
+                                value='open-street-map',
+                                options=[
+                                    {
+                                        'label': 'Open Street',
+                                        'value': 'open-street-map'
+                                    },
+                                    {
+                                        'label': 'Satellite',
+                                        'value': 'satellite'
+                                    },
+                                ],
+                                labelStyle={
+                                    'display': 'inline-block',
+                                    'margin-right': '10px'
+                                },
+                                inputStyle={'margin-right': '5px'},
+                            ),
+                        ],
+                        style={
+                            'display': 'inline-block',
+                            'width': '28%',
+                            'height': '70px',
+                            'margin-left': '2%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
@@ -438,7 +448,7 @@ def create_layout(app):
                             'color': 'rgba(250,0,0,.9)',
                             'width': '40%',
                             'margin-top': '10px',
-                            'margin-left': '10%',
+                            'margin-left': '7%',
                             'display': 'inline-block',
                         },
                     ),
@@ -447,7 +457,7 @@ def create_layout(app):
                         style={
                             'color': 'rgba(0,0,150,.9)',
                             'width': '40%',
-                            'margin-left': '10%',
+                            'margin-left': '7%',
                             'margin-top': '10px',
                             'display': 'inline-block',
                         },
@@ -580,7 +590,7 @@ def create_layout(app):
                     html.Div(
                         children=[
                             html.Label(
-                                'Select MK-test Method: ',
+                                'Select MK-Test Method: ',
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
@@ -639,7 +649,7 @@ def demo_callbacks(app):
     @app.callback(
         Output('store-mkout-data', 'data'),
         Input('dropdown-select-region', 'value'),
-        Input('radio-glacial', 'value'),
+        Input('checklist-glacial', 'value'),
         Input('dropdown-select-hydrometric', 'value'),
         Input('dropdown-select-mktest', 'value'),
         Input('slider-pvalue-thr', 'value'),
@@ -657,10 +667,12 @@ def demo_callbacks(app):
         else:
             df = df[df['Region'] == region]
 
-        if gla_type == 'gla':
-            df = df[df['GLA PERC'] > 0.]
-        if gla_type == 'non':
-            df = df[df['GLA PERC'] == 0.]
+        sel_sid_list = []
+        if 'gla' in gla_type:
+            sel_sid_list += df[df['GLA PERC'] > 0.5].index.tolist()
+        if 'non-gla' in gla_type:
+            sel_sid_list += df[df['GLA PERC'] <= 0.5].index.tolist()
+        df = df.loc[sel_sid_list]
 
         df['type'] = 'na'
         for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
@@ -696,13 +708,13 @@ def demo_callbacks(app):
     )
     def update_trend_map(data, basemap, click_data, fig_config):
 
-        fig = go.Figure(fig_config)  # fig_config = {data, layout}
+        fig = go.Figure(fig_config)
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if trigger_id == 'store-mkout-data':
             df = pd.DataFrame.from_dict(data)
-            fig.data = []  # clear data points
 
+            fig.data = []
             for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
                 mapscatter = create_map_points(
                     df_sel=df[df['type'] == trend_type],
@@ -710,15 +722,19 @@ def demo_callbacks(app):
                     color=trend_config_dict[trend_type]['color'],
                 )
                 fig.add_trace(mapscatter)
-        elif trigger_id == 'radio-basemap':
-            fig.update_layout(mapbox_style=basemap)
-        elif trigger_id == 'graph-trend-map':
+
+        else:
             sel_sid = extract_sid_from_click(click_data)
             if sel_sid in gdf.index:
                 color = 'rgba(255,255,0,0.3)' if basemap == 'satellite' \
                     else 'rgba(0,0,256,0.2)'
-                watershed_layer = create_watershed_polygon(sel_sid, color)
-                fig.update_layout(mapbox_layers=[watershed_layer])
+                watershed_layer = create_watershed_polygon(
+                    sel_sid, color, next(bool_cyc))
+            fig.update_layout(mapbox_layers=[watershed_layer])
+
+            if trigger_id == 'radio-basemap':
+                fig.update_layout(mapbox_style=basemap)
+
         return fig
 
     @app.callback(
