@@ -197,12 +197,12 @@ trend_config_dict = {
     'all': {
         'name': 'All',
         'size': 8,
-        'color': 'rgba(100,100,100,0.5)',
+        'color': 'rgba(0,150,0,0.6)',
     },
-    'na': {
-        'name': 'NA',
+    'no_chg': {
+        'name': 'No Change',
         'size': 8,
-        'color': 'rgba(100,100,100,0.5)',
+        'color': 'rgba(100,100,100,0.6)',
     },
     'neg': {
         'name': 'Positive',
@@ -674,7 +674,7 @@ def demo_callbacks(app):
             sel_sid_list += df[df['GLA PERC'] <= 0.5].index.tolist()
         df = df.loc[sel_sid_list]
 
-        df['type'] = 'na'
+        df['type'] = 'no_chg'
         for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
             df.loc[find_trend_group(df, trend_type, pthr), 'type'] = trend_type
         return df.to_dict()
@@ -715,7 +715,7 @@ def demo_callbacks(app):
             df = pd.DataFrame.from_dict(data)
 
             fig.data = []
-            for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
+            for trend_type in ['no_chg', 'pos', 'sig_pos', 'neg', 'sig_neg']:
                 mapscatter = create_map_points(
                     df_sel=df[df['type'] == trend_type],
                     size=trend_config_dict[trend_type]['size'],
@@ -867,7 +867,7 @@ def demo_callbacks(app):
 
         df = pd.DataFrame.from_dict(data)
 
-        trend_type_list = ['na', 'pos', 'sig_pos', 'neg', 'sig_neg']
+        trend_type_list = ['no_chg', 'pos', 'sig_pos', 'neg', 'sig_neg']
         count = df.groupby('type').count()['slp']
         count = count.reindex(trend_type_list).dropna()
 
