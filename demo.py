@@ -18,10 +18,12 @@ bool_cyc = cycle([True, False])
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
+gauges = pd.read_csv('data/Station_Info_ALL_merged.csv', index_col=0)
+
 df_hys = pd.read_csv('data/hys_1979-2021_30y.csv', index_col=[0, 1])
 df_hys.columns = np.arange(1, 366)
-
-gauges = pd.read_csv('data/Station_Info_ALL_merged.csv', index_col=0)
+sel_sid = np.unique(df_hys.index.get_level_values('SID'))
+gauges = gauges.loc[sel_sid, :]
 
 df_rsid = pd.read_csv('data/region_sid.csv', index_col=0)
 gauges = gauges.join(df_rsid, how='left')
@@ -658,7 +660,8 @@ def demo_callbacks(app):
 
         df_mkout = pd.read_csv(
             'data/mktest/{}/{}.csv'.format(method, sel_hym), index_col=0)
-        df = df_mkout.join(gauges, how='left')
+        # df = df_mkout.join(gauges, how='left')
+        df = gauges.join(df_mkout, how='left')
 
         if region == 'North America':
             df = df.copy()
