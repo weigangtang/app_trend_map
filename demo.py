@@ -18,27 +18,26 @@ bool_cyc = cycle([True, False])
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
-df_rsid = pd.read_csv('data/regional_sid.csv', index_col=0)
-sr_rsid = df_rsid['Name']
-sr_rsid.name = 'Region'
+df_hys = pd.read_csv('data/hys_1979-2021_30y.csv', index_col=[0, 1])
+df_hys.columns = np.arange(1, 366)
+
+gauges = pd.read_csv('data/Station_Info_ALL_merged.csv', index_col=0)
+
+df_rsid = pd.read_csv('data/region_sid.csv', index_col=0)
+gauges = gauges.join(df_rsid, how='left')
+gauges['Region'] = gauges['Region'].fillna('-')
 
 glacier = pd.read_csv('data/watershed_glacier_area.csv', index_col=0)
 glacier = glacier[['GLA AREA', 'GLA PERC']]
-
-gauges = pd.read_csv('data/Station_Info_ALL.csv', index_col=0)
-gauges = gauges.join(glacier)
-
-gauges = gauges.join(sr_rsid)
-gauges['Region'] = gauges['Region'].fillna('-')
+gauges = gauges.join(glacier, how='left')
 
 gdf = gpd.read_file('data/watershed_shapefile/ALL_REF_watersheds.shp')
 gdf.index = [
     '{}-{}'.format(prov, sid)
     for prov, sid in gdf[['PROV', 'STATION ID']].values
 ]
-
-df_hys = pd.read_csv('data/sel_hys.csv', index_col=[0, 1])
-df_hys.columns = np.arange(1, 366)
+gauges['WATERSHED'] = 'NA'
+gauges.loc[gauges.index.isin(gdf.index), 'WATERSHED'] = 'Available'
 
 # keep hydrometrics in order
 hym_list = [
@@ -53,8 +52,8 @@ hym_list = [
     'max7d_jd', 'min7d_jd', 'max14d_jd', 'min14d_jd',
     'low_count', 'low_dur', 'high_count', 'high_dur',
     'si',
-    'spr', 'spr_p', 'smr', 'smr_p',
-    'aut', 'aut_p', 'win', 'win_p',
+    'spr', 'smr', 'aut', 'win',
+    'spr_p', 'smr_p', 'aut_p', 'win_p',
     'smr2', 'smr2_p', 'aut2', 'aut2_p',
     'cold', 'cold_p', 'cold2', 'cold2_p',
     'spr_max14d_jd', 'spr_onset_jd',
@@ -62,6 +61,19 @@ hym_list = [
 
 hym_name = pd.read_csv('data/hym_name_table.csv', index_col=0)
 hym_name = hym_name.loc[hym_list]
+
+hym_options = [
+    {'label': val, 'value': idx}
+    for idx, val in hym_name['Name'].items()
+]
+
+region_options = [
+    {'label': item, 'value': item} for item in
+    [
+        'North America', 'WNA',
+        'Northwest', 'CRM', 'USRM', 'CPNW', 'CPMW', 'Southwest',
+    ]
+]
 
 mktest_options = [
     {
@@ -80,26 +92,6 @@ mktest_options = [
         'label': 'Trend Free Pre-Whitening Method',
         'value': 'trendfree'},
 ]
-
-hym_options = [
-    {'label': val, 'value': idx}
-    for idx, val in hym_name['Name'].items()
-]
-
-region_options = [
-    {'label': item, 'value': item} for item in
-    [
-        'North America', 'WNA',
-        'Northwest', 'CRM', 'USRM', 'CPNW', 'CPMW', 'Southwest',
-    ]
-]
-
-canadian_western_prov = ['YT', 'BC', 'NT', 'AB']
-us_western_prov = [
-    'AK', 'WA', 'OR', 'CA', 'NV', 'ID',
-    'UT', 'AZ', 'MT', 'WY', 'CO', 'NM'
-]
-western_prov = canadian_western_prov + us_western_prov
 
 # ----------------------------------------------------------------------------
 fig_trend_map = go.Figure(go.Scattermapbox())
@@ -196,32 +188,32 @@ gts_plot_empty = go.Figure(layout=gts_layout)
 trend_config_dict = {
     'all': {
         'name': 'All',
-        'size': 8,
+        'size': 6,
         'color': 'rgba(0,150,0,0.6)',
     },
     'no_chg': {
         'name': 'No Change',
-        'size': 8,
+        'size': 6,
         'color': 'rgba(100,100,100,0.6)',
     },
     'neg': {
         'name': 'Positive',
-        'size': 8,
+        'size': 6,
         'color': 'rgba(0,0,256,0.3)',
     },
     'pos': {
         'name': 'Negative',
-        'size': 8,
+        'size': 6,
         'color': 'rgba(256,0,0,0.3)',
     },
     'sig_neg': {
         'name': 'Significant Negative',
-        'size': 10,
+        'size': 8,
         'color': 'rgba(0,0,256,0.9)',
     },
     'sig_pos': {
         'name': 'Significant Positive',
-        'size': 10,
+        'size': 8,
         'color': 'rgba(256,0,0,0.9)',
     },
 }
@@ -253,7 +245,9 @@ def find_trend_group(df_mkout, trend_type, pthr):
         return df_mkout.index
 
 
-def create_watershed_polygon(sel_sid, color='rgba(0,0,256,0.2)', addone=False):
+def create_watershed_polygon(
+    sel_sid, color='rgba(0,0,256,0.2)', addone=False
+):
 
     gdf_sel = gdf[gdf.index == sel_sid]
     gjs_sel = eval(gdf_sel.to_json())
@@ -282,8 +276,13 @@ def create_watershed_polygon(sel_sid, color='rgba(0,0,256,0.2)', addone=False):
 
 def create_map_points(df_sel, size, color):
 
-    hovertext_frame = '<b>{}</b><br>' + 'Name: {}<br>' + \
-        'Area: {:.1f} sqkm<br>' + 'Glacier Coverage (%): {:.2f}'
+    hovertext_frame = '<br>'.join([
+        '<b>{}</b>',
+        'Name: {}',
+        'Area: {:.1f} sqkm',
+        'Glacier Coverage (%): {:.2f}',
+        'Watershed Boundary: {}',
+    ])
 
     text_list = [
         hovertext_frame.format(
@@ -291,6 +290,7 @@ def create_map_points(df_sel, size, color):
             val['STATION NAME'],
             val['DRAINAGE AREA'],
             val['GLA PERC'],
+            val['WATERSHED'],
         )
         for idx, val in df_sel.iterrows()
     ]
@@ -672,6 +672,7 @@ def demo_callbacks(app):
             sel_sid_list += df[df['GLA PERC'] > 0.5].index.tolist()
         if 'non-gla' in gla_type:
             sel_sid_list += df[df['GLA PERC'] <= 0.5].index.tolist()
+            sel_sid_list += df[np.isnan(df['GLA PERC'])].index.tolist()
         df = df.loc[sel_sid_list]
 
         df['type'] = 'no_chg'
@@ -726,10 +727,16 @@ def demo_callbacks(app):
         else:
             sel_sid = extract_sid_from_click(click_data)
             if sel_sid in gdf.index:
-                color = 'rgba(255,255,0,0.3)' if basemap == 'satellite' \
-                    else 'rgba(0,0,256,0.2)'
+                color = 'rgba(255,255,0,.3)' if basemap == 'satellite' \
+                    else 'rgba(0,0,255,.2)'
                 watershed_layer = create_watershed_polygon(
                     sel_sid, color, next(bool_cyc))
+            else:
+                # empty layer to clear map
+                watershed_layer = {
+                    'sourcetype': 'geojson',
+                    'source': {'type': 'FeatureCollection', 'features': []},
+                }
             fig.update_layout(mapbox_layers=[watershed_layer])
 
             if trigger_id == 'radio-basemap':
@@ -883,9 +890,13 @@ def demo_callbacks(app):
         fig_pie = go.Figure(
             go.Pie(
                 values=count.values,
-                labels=name_list, marker_colors=color_list,
-                textinfo='percent+label', textfont_size=16,
-                direction='clockwise', sort=False, hole=.3,
+                labels=name_list,
+                marker_colors=color_list,
+                textinfo='percent+label',
+                textfont_size=16,
+                direction='clockwise',
+                sort=False,
+                hole=.3,
             )
         )
         fig_pie.update_layout(
