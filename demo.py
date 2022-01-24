@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import re
+
 import geopandas as gpd
 
 import plotly.express as px
@@ -18,33 +19,33 @@ bool_cyc = cycle([True, False])
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
-gauges = pd.read_csv('data/Station_Info_ALL_merged.csv', index_col=0)
+gauges = pd.read_csv('data/Station_Info_ALL.csv', index_col=0)
 
-df_hys = pd.read_csv('data/hys_1979-2021_30y.csv', index_col=[0, 1])
-df_hys.columns = np.arange(1, 366)
-sel_sid = np.unique(df_hys.index.get_level_values('SID'))
-gauges = gauges.loc[sel_sid, :]
-
+# region
 df_rsid = pd.read_csv('data/region_sid.csv', index_col=0)
+
 gauges = gauges.join(df_rsid, how='left')
 gauges['Region'] = gauges['Region'].fillna('-')
 
-glacier = pd.read_csv('data/watershed_glacier_area.csv', index_col=0)
-glacier = glacier[['GLA AREA', 'GLA PERC']]
-gauges = gauges.join(glacier, how='left')
+# glacier data
+df_wat_gla = pd.read_csv('data/watershed_glacier_area.csv', index_col=0)
+df_wat_gla = df_wat_gla[['GLA AREA', 'GLA PERC']]
 
-gdf = gpd.read_file('data/watershed_shapefile/ALL_REF_watersheds.shp')
-gdf.index = [
-    '{}-{}'.format(prov, sid)
-    for prov, sid in gdf[['PROV', 'STATION ID']].values
-]
-gauges['WATERSHED'] = 'NA'
-gauges.loc[gauges.index.isin(gdf.index), 'WATERSHED'] = 'Available'
+# 'GLA AREA' of 'nan' implies watershed is not available
+gauges = gauges.join(df_wat_gla, how='left')
 
-# keep hydrometrics in order
-hym_list = [
-    'mean', 'median', 'std', 'skew', 'range',
-    '10p', '25p', '75p', '90p',
+watershed_list = df_wat_gla.index.tolist()
+# watershed_list = sorted([
+#     fpath.split('/')[-1].replace('.geojson', '')
+#     for fpath in glob.glob('../data/watershed_shapefile/*.geojson')
+# ])
+
+# load hydrometrics
+hym_name = pd.read_csv('data/hym_name_table.csv', index_col=0)
+
+sel_hym_list = [
+    'mean', 'median',
+    '5p', '10p', '25p', '75p', '90p', '95p',
     'min', 'min7d', 'max', 'max7d',
     'jan', 'feb', 'mar', 'apr', 'may', 'jun',
     'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
@@ -53,17 +54,15 @@ hym_list = [
     'cen_jd', '25p_jd', '50p_jd', '75p_jd',
     'max7d_jd', 'min7d_jd', 'max14d_jd', 'min14d_jd',
     'low_count', 'low_dur', 'high_count', 'high_dur',
-    'si',
-    'spr', 'smr', 'aut', 'win',
-    'spr_p', 'smr_p', 'aut_p', 'win_p',
-    'smr2', 'smr2_p', 'aut2', 'aut2_p',
-    'cold', 'cold_p', 'cold2', 'cold2_p',
+    'std', 'skew', 'range', 'si',
+    'spr', 'smr', 'aut', 'win', 'spr_p', 'smr_p', 'aut_p', 'win_p',
+    'smr2', 'smr2_p', 'aut2', 'aut2_p', 'cold', 'cold_p', 'cold2', 'cold2_p',
     'spr_max14d_jd', 'spr_onset_jd',
 ]
+hym_name = hym_name.loc[sel_hym_list]
 
-hym_name = pd.read_csv('data/hym_name_table.csv', index_col=0)
-hym_name = hym_name.loc[hym_list]
-
+# ----------------------------------------------------------------------------
+# set dropdown options
 hym_options = [
     {'label': val, 'value': idx}
     for idx, val in hym_name['Name'].items()
@@ -96,6 +95,7 @@ mktest_options = [
 ]
 
 # ----------------------------------------------------------------------------
+
 fig_trend_map = go.Figure(go.Scattermapbox())
 fig_trend_map.update_layout(
     title='Trend Map of Hydrometric',
@@ -118,7 +118,6 @@ trend_summary_frame = """
     | ------------- | ------------- | ------------- |
     | MK-Test P-Value: {:.3f} | Net Change: {:.3f} | Initial:  {:.3f} |
     | Sen's Slope: {:.3f} | Change Rate: {:.3f}| Last:  {:.3f} |
-    | \\# Valid Year: {:.0f}|||
 """
 
 trend_summary_empty = re.sub('{\\S*}', '', trend_summary_frame)
@@ -230,6 +229,7 @@ mkout_param_options = [
 
 # Support Functions ----------------------------------------------------------
 # ----------------------------------------------------------------------------
+
 def find_trend_group(df_mkout, trend_type, pthr):
     if trend_type == 'all':
         return df_mkout.index
@@ -247,11 +247,11 @@ def find_trend_group(df_mkout, trend_type, pthr):
         return df_mkout.index
 
 
-def create_watershed_polygon(
-    sel_sid, color='rgba(0,0,256,0.2)', addone=False
-):
+def create_watershed_polygon(sel_sid, color='rgba(0,0,256,.2)', addone=False):
 
-    gdf_sel = gdf[gdf.index == sel_sid]
+    # gdf_sel = gdf[gdf.index == sel_sid]
+    gdf_sel = gpd.read_file(
+        'data/watershed_shapefile/{}.geojson'.format(sel_sid))
     gjs_sel = eval(gdf_sel.to_json())
     coords = gjs_sel['features'][0]['geometry']['coordinates'][0]
 
@@ -283,7 +283,6 @@ def create_map_points(df_sel, size, color):
         'Name: {}',
         'Area: {:.1f} sqkm',
         'Glacier Coverage (%): {:.2f}',
-        'Watershed Boundary: {}',
     ])
 
     text_list = [
@@ -292,7 +291,6 @@ def create_map_points(df_sel, size, color):
             val['STATION NAME'],
             val['DRAINAGE AREA'],
             val['GLA PERC'],
-            val['WATERSHED'],
         )
         for idx, val in df_sel.iterrows()
     ]
@@ -368,10 +366,11 @@ def create_layout(app):
                             ),
                             dcc.Checklist(
                                 id='checklist-glacial',
-                                value=['gla', 'non-gla'],
+                                value=['gla', 'non-gla', 'na'],
                                 options=[
                                     {'label': 'Glacial', 'value': 'gla'},
                                     {'label': 'Non-Glacial', 'value': 'non-gla'},
+                                    {'label': 'NA', 'value': 'na'},
                                 ],
                                 labelStyle={
                                     'display': 'inline-block',
@@ -382,7 +381,7 @@ def create_layout(app):
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '28%',
+                            'width': '32%',
                             'height': '70px',
                             'margin-left': '1%',
                             'margin-bottom': '10px',
@@ -426,7 +425,7 @@ def create_layout(app):
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '28%',
+                            'width': '24%',
                             'height': '70px',
                             'margin-left': '2%',
                             'margin-bottom': '10px',
@@ -675,6 +674,7 @@ def demo_callbacks(app):
             sel_sid_list += df[df['GLA PERC'] > 0.5].index.tolist()
         if 'non-gla' in gla_type:
             sel_sid_list += df[df['GLA PERC'] <= 0.5].index.tolist()
+        if 'na' in gla_type:
             sel_sid_list += df[np.isnan(df['GLA PERC'])].index.tolist()
         df = df.loc[sel_sid_list]
 
@@ -729,7 +729,7 @@ def demo_callbacks(app):
 
         else:
             sel_sid = extract_sid_from_click(click_data)
-            if sel_sid in gdf.index:
+            if sel_sid in watershed_list:
                 color = 'rgba(255,255,0,.3)' if basemap == 'satellite' \
                     else 'rgba(0,0,255,.2)'
                 watershed_layer = create_watershed_polygon(
@@ -829,14 +829,14 @@ def demo_callbacks(app):
         if click_data:
 
             sel_sid = extract_sid_from_click(click_data)
-            sel_hys = df_hys.loc[sel_sid]
+            df_hys = pd.read_csv(
+                'data/ADHs/{}.csv'.format(sel_sid), index_col=0)
 
             x = np.arange(365)
-            y2 = sel_hys.median(axis=0).values
 
             data = []
-            for year in sel_hys.index:
-                y = sel_hys.loc[year].values
+            for year in df_hys.index:
+                y = df_hys.loc[year].values
                 data.append(
                     go.Scatter(
                         x=x, y=y,
@@ -845,6 +845,8 @@ def demo_callbacks(app):
                         marker_color='rgba(100,100,100,0.2)',
                         hovertemplate=str(year))
                 )
+
+            y2 = df_hys.median(axis=0).values
             data.append(
                 go.Scatter(
                     x=x, y=y2,

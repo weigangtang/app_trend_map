@@ -2,7 +2,9 @@ add layer of watershed when click the stream gauges
 remove the previous one
 
 - first convert shapefile to geojson
-- add layer and remove 
+- add layer and remove
+
+in hovertext, if glacier is "nan", it implies that watershed boundary is unavailable at that watershed.
 
 
 ------------------------------------------------------------------
