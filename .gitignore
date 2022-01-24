@@ -1,22 +1,23 @@
-# .DS_Store
-# .env
-# *.pyc
-# __pycache__/
-# .ipynb_checkpoints/
+.DS_Store
+.env
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
 
-# testbook.ipynb
+testbook.ipynb
+app2.py
 
 
-# Ignore everything:
-*
+# # Ignore everything:
+# *
 
-# Except for the themes directories:
+# # Except for the themes directories:
 
-!app.py
-!demo.py
-!Profile
-!requirements.txt
+# !app.py
+# !demo.py
+# !Profile
+# !requirements.txt
 
-!data/
-!ReadMe.txt
-!.mapbox_token
+# !data/
+# !ReadMe.txt
+# !.mapbox_token
