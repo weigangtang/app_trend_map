@@ -109,7 +109,7 @@ fig_trend_map.update_layout(
         'zoom': 2.2,
         'style': 'open-street-map',
     },
-    height=490,
+    height=480,
     margin={'l': 0, 'r': 0, 't': 0, 'b': 0},
 )
 
@@ -119,7 +119,6 @@ trend_summary_frame = """
     | MK-Test P-Value: {:.3f} | Net Change: {:.3f} | Initial:  {:.3f} |
     | Sen's Slope: {:.3f} | Change Rate: {:.3f}| Last:  {:.3f} |
 """
-
 trend_summary_empty = re.sub('{\\S*}', '', trend_summary_frame)
 
 trend_plot_layout = {
@@ -198,12 +197,12 @@ trend_config_dict = {
         'color': 'rgba(100,100,100,0.6)',
     },
     'neg': {
-        'name': 'Positive',
+        'name': 'Negative',
         'size': 6,
         'color': 'rgba(0,0,256,0.3)',
     },
     'pos': {
-        'name': 'Negative',
+        'name': 'Positive',
         'size': 6,
         'color': 'rgba(256,0,0,0.3)',
     },
@@ -312,6 +311,13 @@ def extract_sid_from_click(click_data):
     return sel_sid
 
 
+def extract_sid_from_select(select_data):
+    return [
+        item['text'].split('<br>')[0].replace('<b>', '').replace('</b>', '')
+        for item in select_data['points']
+    ]
+
+
 # App Layout -----------------------------------------------------------------
 # ----------------------------------------------------------------------------
 def create_layout(app):
@@ -331,25 +337,27 @@ def create_layout(app):
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
-                                    'margin-bottom': '5px',
+                                    'width': '95%',
+                                    'margin-left': '5%',
+                                    'margin-bottom': '3px',
                                 },
                             ),
                             dcc.Dropdown(
                                 id='dropdown-select-region',
                                 value='North America',
                                 options=region_options,
+                                style={'width': '96%', 'margin-left': '2%'},
                             ),
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '26%',
+                            'width': '30%',
                             'height': '70px',
-                            'margin-left': '1%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -361,6 +369,8 @@ def create_layout(app):
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
+                                    'width': '95%',
+                                    'margin-left': '5%',
                                     'margin-bottom': '10px',
                                 },
                             ),
@@ -374,21 +384,22 @@ def create_layout(app):
                                 ],
                                 labelStyle={
                                     'display': 'inline-block',
-                                    'margin-right': '10px'
+                                    'margin-right': '2%'
                                 },
-                                inputStyle={'margin-right': '5px'},
+                                inputStyle={'margin-right': '3px'},
+                                style={'width': '96%', 'margin-left': '2%'},
                             ),
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '32%',
+                            'width': '36%',
                             'height': '70px',
                             'margin-left': '1%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -400,6 +411,8 @@ def create_layout(app):
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
+                                    'width': '95%',
+                                    'margin-left': '5%',
                                     'margin-bottom': '10px',
                                 },
                             ),
@@ -418,21 +431,22 @@ def create_layout(app):
                                 ],
                                 labelStyle={
                                     'display': 'inline-block',
-                                    'margin-right': '10px'
+                                    'margin-right': '2%'
                                 },
                                 inputStyle={'margin-right': '5px'},
+                                style={'width': '96%', 'margin-left': '2%'},
                             ),
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '24%',
+                            'width': '30%',
                             'height': '70px',
-                            'margin-left': '2%',
+                            'margin-left': '1%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -444,22 +458,20 @@ def create_layout(app):
 
                     # Trend Count String
                     html.Label(
-                        id='trend-count-string_pos',
+                        id='trend-count-string-pos',
                         style={
                             'color': 'rgba(250,0,0,.9)',
-                            'width': '40%',
-                            'margin-top': '10px',
-                            'margin-left': '7%',
+                            'width': '50%',
+                            'margin-top': '5px',
                             'display': 'inline-block',
                         },
                     ),
                     html.Label(
-                        id='trend-count-string_neg',
+                        id='trend-count-string-neg',
                         style={
                             'color': 'rgba(0,0,150,.9)',
-                            'width': '40%',
-                            'margin-left': '7%',
-                            'margin-top': '10px',
+                            'width': '50%',
+                            'margin-top': '5px',
                             'display': 'inline-block',
                         },
                     ),
@@ -519,7 +531,9 @@ def create_layout(app):
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
-                                    'margin-bottom': '5px',
+                                    'width': '95%',
+                                    'margin-left': '5%',
+                                    'margin-bottom': '3px',
                                 },
                             ),
                             dcc.Dropdown(
@@ -527,18 +541,19 @@ def create_layout(app):
                                 placeholder='Select Hydrometric',
                                 value='mean',
                                 options=hym_options,
+                                style={'width': '96%', 'margin-left': '2%'},
                             ),
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '54%',
+                            'width': '58%',
                             'height': '70px',
-                            'margin-right': '2%',
+                            'margin-right': '1%',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -546,11 +561,13 @@ def create_layout(app):
                     html.Div(
                         children=[
                             html.Label(
-                                'Significance Level:',
+                                'Significance:',
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
-                                    'margin-bottom': '10px',
+                                    'width': '95%',
+                                    'margin-left': '5%',
+                                    'margin-bottom': '3px',
                                 },
                             ),
                             dcc.Slider(
@@ -577,13 +594,13 @@ def create_layout(app):
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '30%',
+                            'width': '40%',
                             'height': '70px',
                             'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -595,7 +612,9 @@ def create_layout(app):
                                 style={
                                     'font-size': 16,
                                     'font-weight': 'bold',
-                                    'margin-bottom': '5px',
+                                    'width': '96%',
+                                    'margin-left': '2%',
+                                    'margin-bottom': '3px',
                                 },
                             ),
                             dcc.Dropdown(
@@ -603,17 +622,17 @@ def create_layout(app):
                                 placeholder='Select MK-test',
                                 value='trendfree',
                                 options=mktest_options,
+                                style={'width': '98%', 'margin-left': '1%'},
                             ),
                         ],
                         style={
                             'display': 'inline-block',
-                            'width': '93%',
+                            'width': '99%',
                             'height': '70px',
-                            'margin-bottom': '10px',
                             'vertical-align': 'middle',
                             'border': '1px rgb(200,200,200) solid',
                             'border-radius': '5px',
-                            'padding': '5px 15px 5px 15px',
+                            # 'padding': '5px 15px 5px 15px',
                         }
                     ),
 
@@ -625,10 +644,8 @@ def create_layout(app):
                     ),
 
                     # Trend Summary
-                    dcc.Markdown(
-                        id='markdown-trend-summary',
-                        children=trend_summary_empty,
-                        style={'height': '180px', 'margin-top': '10px'}
+                    html.Div(
+                        id='div-markdown-trend',
                     ),
 
                     # GTS
@@ -684,13 +701,18 @@ def demo_callbacks(app):
         return df.to_dict()
 
     @app.callback(
-        Output('trend-count-string_pos', 'children'),
-        Output('trend-count-string_neg', 'children'),
+        Output('trend-count-string-pos', 'children'),
+        Output('trend-count-string-neg', 'children'),
         Input('store-mkout-data', 'data'),
+        Input('graph-trend-map', 'selectedData'),
     )
-    def update_trend_count_string(data):
+    def update_trend_count_string(data, select_data):
 
         df = pd.DataFrame.from_dict(data)
+
+        if select_data:
+            sel_sid = extract_sid_from_select(select_data)
+            df = df.loc[np.unique(sel_sid)]
 
         n_pos = np.sum((df['type'] == 'pos') | (df['type'] == 'sig_pos'))
         n_neg = np.sum((df['type'] == 'neg') | (df['type'] == 'sig_neg'))
@@ -749,7 +771,7 @@ def demo_callbacks(app):
 
     @app.callback(
         Output('graph-trend-plot', 'figure'),
-        Output('markdown-trend-summary', 'children'),
+        Output('div-markdown-trend', 'children'),
         Input('graph-trend-map', 'clickData'),
         Input('store-mkout-data', 'data'),
         State('dropdown-select-hydrometric', 'value'),
@@ -810,15 +832,35 @@ def demo_callbacks(app):
 
             fig = {'data': data, 'layout': layout}
 
-            trend_summary = trend_summary_frame.format(
-                mkout['pvalue'], mkout['chg'], mkout['init'],
-                mkout['slp'], mkout['chg_r'], mkout['last'],
-                mkout['n'],
-            )
-            return fig, trend_summary
+            info_tab = mkout[[
+                'slp', 'chg', 'chg_r', 'pvalue', 'init', 'last', 'n',
+            ]].to_frame().T
+            info_tab.columns = [
+                "Sen's Slope", "Net Change", "Change Rate",
+                "MK p-value", "Initial", "Last", "# Year",
+            ]
 
         else:
-            return trend_plot_empty, trend_summary_empty
+            fig = trend_plot_empty
+
+            info_tab = pd.DataFrame(
+                [[''] * 7],
+                columns=[
+                    "Sen's Slope", "Net Change", "Change Rate",
+                    "MK p-value", "Initial", "Last", "# Year",
+                ]
+            )
+
+        markdown_list = [
+            dcc.Markdown(
+                children=info_tab.iloc[:, :3].to_markdown(index=False)
+            ),
+            dcc.Markdown(
+                children=info_tab.iloc[:, 3:].to_markdown(index=False)
+            ),
+        ]
+        return fig, markdown_list
+        # return trend_plot_empty, trend_summary_empty
 
     @app.callback(
         Output('graph-gts', 'figure'),
@@ -874,10 +916,15 @@ def demo_callbacks(app):
     @app.callback(
         Output('graph-pie', 'figure'),
         Input('store-mkout-data', 'data'),
+        Input('graph-trend-map', 'selectedData'),
     )
-    def update_pie_plot(data):
+    def update_pie_plot(data, select_data):
 
         df = pd.DataFrame.from_dict(data)
+
+        if select_data:
+            sel_sid = extract_sid_from_select(select_data)
+            df = df.loc[np.unique(sel_sid)]
 
         trend_type_list = ['no_chg', 'pos', 'sig_pos', 'neg', 'sig_neg']
         count = df.groupby('type').count()['slp']
@@ -916,14 +963,19 @@ def demo_callbacks(app):
         Output('graph-boxplot', 'figure'),
         Input('store-mkout-data', 'data'),
         Input('dropdown-mktout-params', 'value'),
+        Input('graph-trend-map', 'selectedData'),
     )
-    def update_boxplot(data, mkout_param):
+    def update_boxplot(data, mkout_param, select_data):
 
         fig_box = go.Figure()
 
-        if mkout_param:
+        df = pd.DataFrame.from_dict(data)
 
-            df = pd.DataFrame.from_dict(data)
+        if select_data:
+            sel_sid = extract_sid_from_select(select_data)
+            df = df.loc[np.unique(sel_sid)]
+
+        if mkout_param:
 
             for trend_type in ['all', 'pos', 'sig_pos', 'neg', 'sig_neg']:
                 if trend_type == 'all':
