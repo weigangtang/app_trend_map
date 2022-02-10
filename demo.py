@@ -426,7 +426,7 @@ def create_layout(app):
                                     },
                                     {
                                         'label': 'Satellite',
-                                        'value': 'satellite'
+                                        'value': 'satellite-streets'
                                     },
                                 ],
                                 labelStyle={
@@ -737,6 +737,17 @@ def demo_callbacks(app):
         fig = go.Figure(fig_config)
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
+        # use to remove polygon on map
+        watershed_layer_empty = {
+            'sourcetype': 'geojson',
+            'source': {'type': 'FeatureCollection', 'features': []},
+        }
+
+        polygon_color_dict = {
+            'open-street-map': 'rgba(0,0,255,.2)',
+            'satellite-streets': 'rgba(255,255,0,.3)',
+        }
+
         if trigger_id == 'store-mkout-data':
             df = pd.DataFrame.from_dict(data)
 
@@ -749,19 +760,16 @@ def demo_callbacks(app):
                 )
                 fig.add_trace(mapscatter)
 
+            fig.update_layout(mapbox_layers=[watershed_layer_empty])
+
         else:
-            sel_sid = extract_sid_from_click(click_data)
-            if sel_sid in watershed_list:
-                color = 'rgba(255,255,0,.3)' if basemap == 'satellite' \
-                    else 'rgba(0,0,255,.2)'
-                watershed_layer = create_watershed_polygon(
-                    sel_sid, color, next(bool_cyc))
-            else:
-                # empty layer to clear map
-                watershed_layer = {
-                    'sourcetype': 'geojson',
-                    'source': {'type': 'FeatureCollection', 'features': []},
-                }
+
+            watershed_layer = watershed_layer_empty  # set empty by default
+            if click_data:
+                sel_sid = extract_sid_from_click(click_data)
+                if sel_sid in watershed_list:
+                    watershed_layer = create_watershed_polygon(
+                        sel_sid, polygon_color_dict[basemap], next(bool_cyc))
             fig.update_layout(mapbox_layers=[watershed_layer])
 
             if trigger_id == 'radio-basemap':
