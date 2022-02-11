@@ -454,15 +454,15 @@ def create_layout(app):
                     ),
 
                     # Trend Map
-                    dcc.Graph(
-                        id='graph-trend-map',
-                        figure=fig_trend_map,
-                    ),
                     dcc.Loading(
                         id='loading-map',
                         type='default',
-                        fullscreen=True,
-                        children=html.Div(id='loading-map-div'),
+                        children=[
+                            dcc.Graph(
+                                id='graph-trend-map',
+                                figure=fig_trend_map,
+                            ),
+                        ],
                     ),
 
                     # Trend Count String
@@ -736,7 +736,6 @@ def demo_callbacks(app):
 
     @app.callback(
         Output('graph-trend-map', 'figure'),
-        Output('loading-map-div', 'children'),
         Input('store-mkout-data', 'data'),
         Input('radio-basemap', 'value'),
         Input('graph-trend-map', 'clickData'),
@@ -786,7 +785,7 @@ def demo_callbacks(app):
             if trigger_id == 'radio-basemap':
                 fig.update_layout(mapbox_style=basemap)
 
-        return fig, None
+        return fig
 
     @app.callback(
         Output('graph-trend-plot', 'figure'),
