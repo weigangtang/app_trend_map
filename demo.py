@@ -458,6 +458,12 @@ def create_layout(app):
                         id='graph-trend-map',
                         figure=fig_trend_map,
                     ),
+                    dcc.Loading(
+                        id='loading-map',
+                        type='default',
+                        fullscreen=True,
+                        children=html.Div(id='loading-map-div'),
+                    ),
 
                     # Trend Count String
                     html.Label(
@@ -657,7 +663,6 @@ def create_layout(app):
                         figure=gts_plot_empty,
                         style={'width': '100%', 'margin-top': '20px'},
                     ),
-
                 ],
             ),
 
@@ -731,6 +736,7 @@ def demo_callbacks(app):
 
     @app.callback(
         Output('graph-trend-map', 'figure'),
+        Output('loading-map-div', 'children'),
         Input('store-mkout-data', 'data'),
         Input('radio-basemap', 'value'),
         Input('graph-trend-map', 'clickData'),
@@ -780,7 +786,7 @@ def demo_callbacks(app):
             if trigger_id == 'radio-basemap':
                 fig.update_layout(mapbox_style=basemap)
 
-        return fig
+        return fig, None
 
     @app.callback(
         Output('graph-trend-plot', 'figure'),
