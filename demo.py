@@ -277,6 +277,9 @@ def create_watershed_polygon(sel_sid, color='rgba(0,0,256,.2)', addone=False):
 
 def create_map_points(df_sel, size, color):
 
+    # wihtout this step, no-watershed group won't show
+    df_sel = df_sel.fillna(value={'GLA PERC': np.nan})
+
     hovertext_frame = '<br>'.join([
         '<b>{}</b>',
         'Name: {}',
@@ -676,8 +679,12 @@ def demo_callbacks(app):
 
         df_mkout = pd.read_csv(
             'data/mktest/{}/{}.csv'.format(method, sel_hym), index_col=0)
-        # df = df_mkout.join(gauges, how='left')
-        df = gauges.join(df_mkout, how='left')
+        df = df_mkout.join(gauges, how='left')
+        # df = gauges.join(df_mkout, how='left')
+
+        df['type'] = 'no_chg'
+        for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
+            df.loc[find_trend_group(df, trend_type, pthr), 'type'] = trend_type
 
         if region == 'North America':
             df = df.copy()
@@ -695,9 +702,6 @@ def demo_callbacks(app):
             sel_sid_list += df[np.isnan(df['GLA PERC'])].index.tolist()
         df = df.loc[sel_sid_list]
 
-        df['type'] = 'no_chg'
-        for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
-            df.loc[find_trend_group(df, trend_type, pthr), 'type'] = trend_type
         return df.to_dict()
 
     @app.callback(
@@ -769,7 +773,8 @@ def demo_callbacks(app):
                 sel_sid = extract_sid_from_click(click_data)
                 if sel_sid in watershed_list:
                     watershed_layer = create_watershed_polygon(
-                        sel_sid, polygon_color_dict[basemap], next(bool_cyc))
+                        sel_sid, polygon_color_dict[basemap], next(bool_cyc)
+                    )
             fig.update_layout(mapbox_layers=[watershed_layer])
 
             if trigger_id == 'radio-basemap':
@@ -786,78 +791,82 @@ def demo_callbacks(app):
     )
     def update_trend_line(click_data, data, sel_hym):
 
+        fig = trend_plot_empty
+
+        info_tab = pd.DataFrame(
+            [[''] * 7],
+            columns=[
+                "Sen's Slope", "Net Change", "Change Rate",
+                "MK p-value", "Initial", "Last", "# Year",
+            ]
+        )
+
         if click_data:
 
             df = pd.DataFrame.from_dict(data)
 
             sel_sid = extract_sid_from_click(click_data)
 
-            df_hym = pd.read_csv(
-                'data/hydrometrics/{}.csv'.format(sel_hym), index_col=0)
-            sel_hym_name = hym_name.loc[sel_hym, 'Name']
+            if sel_sid in df.index:
 
-            ts = df_hym.loc[sel_sid]
-            t = ts.index.values.astype(int)
-            y = ts.values
+                df_hym = pd.read_csv(
+                    'data/hydrometrics/{}.csv'.format(sel_hym), index_col=0)
+                sel_hym_name = hym_name.loc[sel_hym, 'Name']
 
-            mkout = df.loc[sel_sid]
-            slp = mkout['slp']
-            intp = mkout['intp']
-            trend_type = mkout['type']
+                ts = df_hym.loc[sel_sid]
+                t = ts.index.values.astype(int)
+                y = ts.values
 
-            y2 = slp * t + intp
+                mkout = df.loc[sel_sid]
+                slp = mkout['slp']
+                intp = mkout['intp']
+                trend_type = mkout['type']
 
-            data = [
-                go.Scatter(
-                    x=t, y=y, name='Time Series', mode='markers', text=t,
-                    showlegend=False, marker={'color': 'grey', 'size': 6},
-                    hovertemplate='Year: %{text}' + '<br>Value: %{y:.3f}</br>'
+                y2 = slp * t + intp
+
+                data = [
+                    go.Scatter(
+                        x=t, y=y, name='Time Series', mode='markers', text=t,
+                        showlegend=False, marker={'color': 'grey', 'size': 6},
+                        hovertemplate=(
+                            'Year: %{text}'
+                            '<br>Value: %{y:.3f}</br>'
+                        )
+                    )
+                ]
+                data.append(
+                    go.Scatter(
+                        x=t, y=y2, name='Sens Slope', mode='lines',
+                        showlegend=False, line={'color': 'green', 'width': 2})
                 )
-            ]
-            data.append(
-                go.Scatter(
-                    x=t, y=y2, name='Sens Slope', mode='lines',
-                    showlegend=False, line={'color': 'green', 'width': 2})
-            )
 
-            bgcolor = 'white'  # can't use rgba for white
-            if trend_type == 'sig_pos':
-                bgcolor = 'rgba(256,0,0,.2)'
-            if trend_type == 'sig_neg':
-                bgcolor = 'rgba(0,0,256,.2)'
+                bgcolor = 'white'  # can't use rgba for white
+                if trend_type == 'sig_pos':
+                    bgcolor = 'rgba(256,0,0,.2)'
+                if trend_type == 'sig_neg':
+                    bgcolor = 'rgba(0,0,256,.2)'
 
-            layout = trend_plot_layout.copy()
-            layout.update({
-                'title': {
-                    'text': 'Trend Line: {}'.format(sel_sid),
-                    'x': .05,
-                    'y': .98,
-                    'font': {'size': 18},
-                },
-                'plot_bgcolor': bgcolor,
-                'yaxis_title': sel_hym_name,
-            })
+                layout = trend_plot_layout.copy()
+                layout.update({
+                    'title': {
+                        'text': 'Trend Line: {}'.format(sel_sid),
+                        'x': .05,
+                        'y': .98,
+                        'font': {'size': 18},
+                    },
+                    'plot_bgcolor': bgcolor,
+                    'yaxis_title': sel_hym_name,
+                })
 
-            fig = {'data': data, 'layout': layout}
+                fig = {'data': data, 'layout': layout}
 
-            info_tab = mkout[[
-                'slp', 'chg', 'chg_r', 'pvalue', 'init', 'last', 'n',
-            ]].to_frame().T
-            info_tab.columns = [
-                "Sen's Slope", "Net Change", "Change Rate",
-                "MK p-value", "Initial", "Last", "# Year",
-            ]
-
-        else:
-            fig = trend_plot_empty
-
-            info_tab = pd.DataFrame(
-                [[''] * 7],
-                columns=[
+                info_tab = mkout[[
+                    'slp', 'chg', 'chg_r', 'pvalue', 'init', 'last', 'n',
+                ]].to_frame().T
+                info_tab.columns = [
                     "Sen's Slope", "Net Change", "Change Rate",
                     "MK p-value", "Initial", "Last", "# Year",
                 ]
-            )
 
         markdown_list = [
             dcc.Markdown(
@@ -868,58 +877,64 @@ def demo_callbacks(app):
             ),
         ]
         return fig, markdown_list
-        # return trend_plot_empty, trend_summary_empty
 
     @app.callback(
         Output('graph-gts', 'figure'),
         Input('graph-trend-map', 'clickData'),
+        Input('store-mkout-data', 'data'),
     )
-    def update_gts(click_data):
+    def update_gts(click_data, data):
+
+        fig = go.Figure(layout=gts_layout)
 
         if click_data:
 
+            df = pd.DataFrame.from_dict(data)
+
             sel_sid = extract_sid_from_click(click_data)
-            df_hys = pd.read_csv(
-                'data/ADHs/{}.csv'.format(sel_sid), index_col=0)
 
-            x = np.arange(365)
+            if sel_sid in df.index:
 
-            data = []
-            for year in df_hys.index:
-                y = df_hys.loc[year].values
+                df_hys = pd.read_csv(
+                    'data/ADHs/{}.csv'.format(sel_sid), index_col=0)
+
+                x = np.arange(365)
+
+                data = []
+                for year in df_hys.index:
+                    y = df_hys.loc[year].values
+                    data.append(
+                        go.Scatter(
+                            x=x, y=y,
+                            mode='lines',
+                            line_width=1.5,
+                            marker_color='rgba(100,100,100,0.2)',
+                            hovertemplate=str(year))
+                    )
+
+                y2 = df_hys.median(axis=0).values
                 data.append(
                     go.Scatter(
-                        x=x, y=y,
+                        x=x, y=y2,
                         mode='lines',
-                        line_width=1.5,
-                        marker_color='rgba(100,100,100,0.2)',
-                        hovertemplate=str(year))
+                        marker_color='rgba(0,0,256,.9)',
+                        line_width=2.5,
+                        hovertemplate='Average')
                 )
 
-            y2 = df_hys.median(axis=0).values
-            data.append(
-                go.Scatter(
-                    x=x, y=y2,
-                    mode='lines',
-                    marker_color='rgba(0,0,256,.9)',
-                    line_width=2.5,
-                    hovertemplate='Average')
-            )
+                layout = gts_layout.copy()
+                layout.update({
+                    'title': {
+                        'text': 'Annual Daily Hydrographs: {}'.format(sel_sid),
+                        'x': .05,
+                        'y': .98,
+                        'font': {'size': 18},
+                    }
+                })
 
-            layout = gts_layout.copy()
-            layout.update({
-                'title': {
-                    'text': 'Annual Daily Hydrographs: {}'.format(sel_sid),
-                    'x': .05,
-                    'y': .98,
-                    'font': {'size': 18},
-                }
-            })
+                fig = go.Figure(data=data, layout=layout)
 
-            return {'data': data, 'layout': layout}
-
-        else:
-            return {'data': [], 'layout': gts_layout}
+        return fig
 
     @app.callback(
         Output('graph-pie', 'figure'),
@@ -928,37 +943,42 @@ def demo_callbacks(app):
     )
     def update_pie_plot(data, select_data):
 
+        fig_pie = go.Figure()
+
         df = pd.DataFrame.from_dict(data)
 
-        if select_data:
-            sel_sid = extract_sid_from_select(select_data)
-            df = df.loc[np.unique(sel_sid)]
+        if not df.empty:
 
-        trend_type_list = ['no_chg', 'pos', 'sig_pos', 'neg', 'sig_neg']
-        count = df.groupby('type').count()['slp']
-        count = count.reindex(trend_type_list).dropna()
+            if select_data:
+                sel_sid = extract_sid_from_select(select_data)
+                df = df.loc[np.unique(sel_sid)]
 
-        name_list = [
-            trend_config_dict[trend_type]['name']
-            for trend_type in count.index
-        ]
-        color_list = [
-            trend_config_dict[trend_type]['color']
-            for trend_type in count.index
-        ]
+            trend_type_list = ['no_chg', 'pos', 'sig_pos', 'neg', 'sig_neg']
+            count = df.groupby('type').count()['slp']
+            count = count.reindex(trend_type_list).dropna()
 
-        fig_pie = go.Figure(
-            go.Pie(
-                values=count.values,
-                labels=name_list,
-                marker_colors=color_list,
-                textinfo='percent+label',
-                textfont_size=16,
-                direction='clockwise',
-                sort=False,
-                hole=.3,
+            name_list = [
+                trend_config_dict[trend_type]['name']
+                for trend_type in count.index
+            ]
+            color_list = [
+                trend_config_dict[trend_type]['color']
+                for trend_type in count.index
+            ]
+
+            fig_pie = go.Figure(
+                go.Pie(
+                    values=count.values,
+                    labels=name_list,
+                    marker_colors=color_list,
+                    textinfo='percent+label',
+                    textfont_size=16,
+                    direction='clockwise',
+                    sort=False,
+                    hole=.3,
+                )
             )
-        )
+
         fig_pie.update_layout(
             showlegend=False,
             plot_bgcolor='rgba(200,200,200,0.1)',
@@ -979,24 +999,26 @@ def demo_callbacks(app):
 
         df = pd.DataFrame.from_dict(data)
 
-        if select_data:
-            sel_sid = extract_sid_from_select(select_data)
-            df = df.loc[np.unique(sel_sid)]
+        if not df.empty:
 
-        if mkout_param:
+            if select_data:
+                sel_sid = extract_sid_from_select(select_data)
+                df = df.loc[np.unique(sel_sid)]
 
-            for trend_type in ['all', 'pos', 'sig_pos', 'neg', 'sig_neg']:
-                if trend_type == 'all':
-                    df_sel = df.copy()
-                else:
-                    df_sel = df[df['type'].str.endswith(trend_type)]
-                fig_box.add_trace(
-                    go.Violin(
-                        y=df_sel[mkout_param],
-                        name=trend_config_dict[trend_type]['name'],
-                        marker_color=trend_config_dict[trend_type]['color'],
-                    ),
-                )
+            if mkout_param:
+
+                for trend_type in ['all', 'pos', 'sig_pos', 'neg', 'sig_neg']:
+                    if trend_type == 'all':
+                        df_sel = df.copy()
+                    else:
+                        df_sel = df[df['type'].str.endswith(trend_type)]
+                    fig_box.add_trace(
+                        go.Violin(
+                            y=df_sel[mkout_param],
+                            name=trend_config_dict[trend_type]['name'],
+                            marker_color=trend_config_dict[trend_type]['color'],
+                        ),
+                    )
 
         fig_box.update_layout(
             showlegend=False,
