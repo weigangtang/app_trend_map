@@ -7,7 +7,7 @@ __pycache__/
 testbook.ipynb
 app2.py
 
-data/archive
+data/archive/
 
 app_trend_analysis.sublime-project
 app_trend_analysis.sublime-workspace
