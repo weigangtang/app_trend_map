@@ -4,8 +4,8 @@
 __pycache__/
 .ipynb_checkpoints/
 
-testbook.ipynb
 app2.py
+testbook.ipynb
 
 data/archive/
 
