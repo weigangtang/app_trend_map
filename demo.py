@@ -113,14 +113,6 @@ fig_trend_map.update_layout(
     margin={'l': 0, 'r': 0, 't': 0, 'b': 0},
 )
 
-trend_summary_frame = """
-    ||||
-    | ------------- | ------------- | ------------- |
-    | MK-Test P-Value: {:.3f} | Net Change: {:.3f} | Initial:  {:.3f} |
-    | Sen's Slope: {:.3f} | Change Rate: {:.3f}| Last:  {:.3f} |
-"""
-trend_summary_empty = re.sub('{\\S*}', '', trend_summary_frame)
-
 trend_plot_layout = {
     'font_size': 14,
     'title': {
@@ -148,7 +140,7 @@ trend_plot_layout = {
     'plot_bgcolor': 'rgba(200,200,200,0.1)',
     # 'paper_bgcolor': '#F2F2F2',
     # 'width': 800,
-    'height': 240,
+    'height': 300,
     'margin': dict(l=2, r=2, t=30, b=2),
 }
 trend_plot_empty = go.Figure(layout=trend_plot_layout)
@@ -180,7 +172,7 @@ gts_layout = {
     ),
     'plot_bgcolor': 'rgba(200,200,200,0.1)',
     # 'paper_bgcolor': '#F2F2F2',
-    'height': 300,
+    'height': 360,
     'margin': dict(l=2, r=2, t=30, b=2),
 }
 gts_plot_empty = go.Figure(layout=gts_layout)
@@ -799,10 +791,9 @@ def demo_callbacks(app):
         fig = trend_plot_empty
 
         info_tab = pd.DataFrame(
-            [[''] * 7],
+            [[''] * 4],
             columns=[
-                "Sen's Slope", "Net Change", "Change Rate",
-                "MK p-value", "Initial", "Last", "# Year",
+                "MK P-Value", "Sen's Slope", "Net Change", "Change Rate",
             ]
         )
 
@@ -866,19 +857,21 @@ def demo_callbacks(app):
                 fig = {'data': data, 'layout': layout}
 
                 info_tab = mkout[[
-                    'slp', 'chg', 'chg_r', 'pvalue', 'init', 'last', 'n',
+                    'pvalue', 'slp', 'chg', 'chg_r'
                 ]].to_frame().T
                 info_tab.columns = [
-                    "Sen's Slope", "Net Change", "Change Rate",
-                    "MK p-value", "Initial", "Last", "# Year",
+                    "MK P-Value", "Sen's Slope", "Net Change", "Change Rate",
                 ]
 
         markdown_list = [
+            # dcc.Markdown(
+            #     children=info_tab.iloc[:, :3].to_markdown(index=False)
+            # ),
+            # dcc.Markdown(
+            #     children=info_tab.iloc[:, 3:].to_markdown(index=False)
+            # ),
             dcc.Markdown(
-                children=info_tab.iloc[:, :3].to_markdown(index=False)
-            ),
-            dcc.Markdown(
-                children=info_tab.iloc[:, 3:].to_markdown(index=False)
+                children=info_tab.to_markdown(index=False)
             ),
         ]
         return fig, markdown_list
@@ -914,7 +907,8 @@ def demo_callbacks(app):
                             mode='lines',
                             line_width=1.5,
                             marker_color='rgba(100,100,100,0.2)',
-                            hovertemplate=str(year))
+                            hovertemplate=str(year)
+                        )
                     )
 
                 y2 = df_hys.median(axis=0).values
@@ -924,7 +918,8 @@ def demo_callbacks(app):
                         mode='lines',
                         marker_color='rgba(0,0,256,.9)',
                         line_width=2.5,
-                        hovertemplate='Average')
+                        hovertemplate='Average'
+                    )
                 )
 
                 layout = gts_layout.copy()
