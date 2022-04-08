@@ -948,12 +948,11 @@ def demo_callbacks(app):
 
             sel_sid = extract_sid_from_click(click_data)
 
+            # must include 'slp', 'pvalue', 'chg', 'mean'
             df = pd.read_csv(
                 'data/mktest_dly/{}/{}.csv'.format(method, sel_sid),
                 index_col=0,
             )
-            df.index = np.arange(365)
-            df['mean'] = (df['init'] + df['last']) / 2
 
             df['type'] = 'no_chg'
             for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
