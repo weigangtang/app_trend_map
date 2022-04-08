@@ -19,11 +19,8 @@ bool_cyc = cycle([True, False])
 
 px.set_mapbox_access_token(open('.mapbox_token').read())
 
-gauges = pd.read_csv('data/Station_Info_ALL.csv', index_col=0)
-
-# region
 df_rsid = pd.read_csv('data/region_sid.csv', index_col=0)
-
+gauges = pd.read_csv('data/Station_Info_ALL.csv', index_col=0)
 gauges = gauges.join(df_rsid, how='left')
 gauges['Region'] = gauges['Region'].fillna('-')
 
