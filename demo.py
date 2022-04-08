@@ -145,10 +145,12 @@ trend_plot_layout = {
 }
 trend_plot_empty = go.Figure(layout=trend_plot_layout)
 
+
+
 gts_layout = {
     'font_size': 14,
     'title': {
-        'text': 'Annual Daily Hydrographs: ',
+        'text': 'Daily Trend Bar: ',
         'x': .05,
         'y': .98,
         'font': {'size': 18},
@@ -876,63 +878,123 @@ def demo_callbacks(app):
         ]
         return fig, markdown_list
 
+    # @app.callback(
+    #     Output('graph-gts', 'figure'),
+    #     Input('graph-trend-map', 'clickData'),
+    #     Input('store-mkout-data', 'data'),
+    # )
+    # def update_gts(click_data, data):
+
+    #     fig = go.Figure(layout=gts_layout)
+
+    #     if click_data:
+
+    #         df = pd.DataFrame.from_dict(data)
+    #         sel_sid = extract_sid_from_click(click_data)
+
+    #         if sel_sid in df.index:
+
+    #             df_hys = pd.read_csv(
+    #                 'data/ADHs/{}.csv'.format(sel_sid), index_col=0
+    #             )
+    #             x = np.arange(365)
+
+    #             data = []
+    #             for year in df_hys.index:
+    #                 y = df_hys.loc[year].values
+    #                 data.append(
+    #                     go.Scatter(
+    #                         x=x, y=y,
+    #                         mode='lines',
+    #                         line_width=1.5,
+    #                         marker_color='rgba(100,100,100,0.2)',
+    #                         hovertemplate=str(year)
+    #                     )
+    #                 )
+
+    #             y2 = df_hys.median(axis=0).values
+    #             data.append(
+    #                 go.Scatter(
+    #                     x=x, y=y2,
+    #                     mode='lines',
+    #                     marker_color='rgba(0,0,256,.9)',
+    #                     line_width=2.5,
+    #                     hovertemplate='Average'
+    #                 )
+    #             )
+
+    #             layout = gts_layout.copy()
+    #             layout.update({
+    #                 'title': {
+    #                     'text': 'Annual Daily Hydrographs: {}'.format(sel_sid),
+    #                     'x': .05,
+    #                     'y': .98,
+    #                     'font': {'size': 18},
+    #                 }
+    #             })
+
+    #             fig = go.Figure(data=data, layout=layout)
+
+    #     return fig
+
     @app.callback(
         Output('graph-gts', 'figure'),
         Input('graph-trend-map', 'clickData'),
-        Input('store-mkout-data', 'data'),
+        Input('dropdown-select-mktest', 'value'),
+        Input('slider-pvalue-thr', 'value'),
     )
-    def update_gts(click_data, data):
+    def update_daily_trend_bar(click_data, method, pthr):
 
         fig = go.Figure(layout=gts_layout)
 
         if click_data:
 
-            df = pd.DataFrame.from_dict(data)
-
             sel_sid = extract_sid_from_click(click_data)
 
-            if sel_sid in df.index:
+            df = pd.read_csv(
+                'data/mktest_dly/{}/{}.csv'.format(method, sel_sid),
+                index_col=0,
+            )
+            df.index = np.arange(365)
+            df['mean'] = (df['init'] + df['last']) / 2
 
-                df_hys = pd.read_csv(
-                    'data/ADHs/{}.csv'.format(sel_sid), index_col=0)
+            df['type'] = 'no_chg'
+            for trend_type in ['pos', 'sig_pos', 'neg', 'sig_neg']:
+                idx = find_trend_group(df, trend_type, pthr)
+                df.loc[idx, 'type'] = trend_type
 
-                x = np.arange(365)
+            for trend_type in np.unique(df['type']):
+    
+                df_sel = df[df['type'] == trend_type]
+                color = trend_config_dict[trend_type]['color']
+                
+                fig.add_trace(go.Scatter(
+                    x=df_sel.index,
+                    y=df_sel['mean'],
+                    error_y=dict(
+                        type='data',
+                        array=df_sel['chg'],
+                        color=color, thickness=1.5, width=.8,
+                    ),
+                    mode='markers',
+                    marker=dict(color=color, size=1)
+                ))
 
-                data = []
-                for year in df_hys.index:
-                    y = df_hys.loc[year].values
-                    data.append(
-                        go.Scatter(
-                            x=x, y=y,
-                            mode='lines',
-                            line_width=1.5,
-                            marker_color='rgba(100,100,100,0.2)',
-                            hovertemplate=str(year)
-                        )
-                    )
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df['mean'],
+                marker=dict(color='rgba(0,0,0,.8)'), name='Average'
+            ))
 
-                y2 = df_hys.median(axis=0).values
-                data.append(
-                    go.Scatter(
-                        x=x, y=y2,
-                        mode='lines',
-                        marker_color='rgba(0,0,256,.9)',
-                        line_width=2.5,
-                        hovertemplate='Average'
-                    )
-                )
-
-                layout = gts_layout.copy()
-                layout.update({
-                    'title': {
-                        'text': 'Annual Daily Hydrographs: {}'.format(sel_sid),
-                        'x': .05,
-                        'y': .98,
-                        'font': {'size': 18},
-                    }
-                })
-
-                fig = go.Figure(data=data, layout=layout)
+            layout = gts_layout.copy()
+            layout.update({
+                'title': {
+                    'text': 'Daily Trend Bar: {}'.format(sel_sid),
+                    'x': .05,
+                    'y': .98,
+                    'font': {'size': 18},
+                }
+            })
+            fig.update_layout(layout)
 
         return fig
 
